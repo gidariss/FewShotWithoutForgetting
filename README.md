@@ -29,7 +29,7 @@ This code is released under the MIT License (refer to the LICENSE file for detai
 
 ## Running experiments on MiniImageNet.
 
-First, you must download the MiniImagenet dataset from [here](https://mega.nz/#!rx0wGQyS!96sFlAr6yyv-9QQPCm5OBFbOm4XSD0t-HlmGaT5GaiE) and set in [dataloader.py](https://github.com/gidariss/FewShotWithoutForgetting/blob/master/dataloader.py#L27) the path to where the dataset resides in your machine. We recommend creating a *dataset* directory `mkdir datasets` and placing the downloaded dataset there.
+First, you must download the MiniImagenet dataset from [here](https://mega.nz/#!rx0wGQyS!96sFlAr6yyv-9QQPCm5OBFbOm4XSD0t-HlmGaT5GaiE) and set in [dataloader.py](https://github.com/gidariss/FewShotWithoutForgetting/blob/master/dataloader.py#L28) the path to where the dataset resides in your machine. We recommend creating a *dataset* directory `mkdir datasets` and placing the downloaded dataset there.
 
 ### Training and evaluating our model on Mini-ImageNet.
 
@@ -156,7 +156,7 @@ Here we provide experimental results of our approach as well as of our implement
 
 Here provide instructions on how to train and evaluate our approach on the ImageNet based low-shot benchmark proposed by Bharath and Girshick [1]. 
 
-**(1)** First, you must download the ImageNet dataset and set in [dataloader.py](https://github.com/gidariss/FewShotWithoutForgetting/blob/master/dataloader.py#L28) the path to where the dataset resides in your machine. We recommend creating a *dataset* directory `mkdir datasets` and placing the downloaded dataset there. 
+**(1)** First, you must download the ImageNet dataset and set in [dataloader.py](https://github.com/gidariss/FewShotWithoutForgetting/blob/master/dataloader.py#L29) the path to where the dataset resides in your machine. We recommend creating a *dataset* directory `mkdir datasets` and placing the downloaded dataset there. 
 
 **(2)** Launch the 1st training stage of our approach by running the following command:
 ```
