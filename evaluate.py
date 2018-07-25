@@ -57,14 +57,14 @@ else:
     test_split = 'val'
     epoch_size = 2000
 
-nExemplars = config['data_test_opt']['nExemplars']
+data_test_opt = config['data_test_opt']
 dloader_test = FewShotDataloader(
     dataset=MiniImageNet(phase=test_split),
-    nKnovel=5, # number of novel categories on each training episode.
-    nKbase=64, # number of base categories.
-    nExemplars=nExemplars, # num training examples per novel category
-    nTestNovel=15 * 5, # num test examples for all the novel categories
-    nTestBase=15 * 5, # num test examples for all the base categories
+    nKnovel=data_test_opt['nKnovel'], # number of novel categories on each training episode.
+    nKbase=data_test_opt['nKbase'], # number of base categories.
+    nExemplars=data_test_opt['nExemplars'], # num training examples per novel category
+    nTestNovel=data_test_opt['nTestNovel'], # num test examples for all the novel categories
+    nTestBase=data_test_opt['nTestBase'], # num test examples for all the base categories
     batch_size=1,
     num_workers=0,
     epoch_size=epoch_size, # num of batches per epoch
