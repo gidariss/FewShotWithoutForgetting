@@ -25,6 +25,9 @@ If you find the code useful in your research, please consider citing our CVPR201
 }
 ```
 
+### Requirements
+It was developed and tested with pytorch version 0.2.0_4
+
 ### License
 This code is released under the MIT License (refer to the LICENSE file for details). 
 
