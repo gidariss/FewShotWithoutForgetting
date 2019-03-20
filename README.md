@@ -207,6 +207,8 @@ CUDA_VISIBLE_DEVICES=0 python lowshot_evaluate.py --config=imagenet_ResNet10Cosi
 ## Experimental results on the ImageNet based Low-shot benchmark
 
 Here we evaluate our approach on the ImageNet based low-shot benchmark proposed by Bharath and Girshick [1] using the improved evaluation metrics proposed by Wang et al [2]. All the approaches use a ResNet10 feature extractor. Note that after cleaning and refactoring the implementation code of the paper and re-running the experiments, the results that we got are slightly different. 
+A pre-trained ResNet10 model with cosine-similarity based classifier is provided here: [imagenet_ResNet10CosineClassifier](https://mega.nz/#!fw12RApC!RCnaQd-iEdQuMVZYBFAcPOJKxqrV1Q0m1uTGw6xwDio) 
+
 
 ### Top-5 1-shot classification accuracy
  
