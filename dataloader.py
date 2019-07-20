@@ -87,7 +87,7 @@ def buildLabelIndex(labels):
 
 def load_data(file):
     with open(file, 'rb') as fo:
-        data = pickle.load(fo)
+        data = pickle.load(fo, encoding='bytes')
     return data
 
 
