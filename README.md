@@ -123,7 +123,7 @@ Here we provide experimental results of our approach as well as of our implement
 |--------------------------------------------| ----------------- | ---------------:| ------:| ------:|
 | Matching Networks [3]                      | Conv64            | 43.60%          | -      | -      |
 | Prototypical Networks [4]                  | Conv64            | 49.42% +/- 0.78 | -      | -      |
-| Ravi and Laroche [5]                       | Conv32            | 43.40% +/- 0.77 | -      | -      |
+| Ravi and Larochelle [5]                    | Conv32            | 43.40% +/- 0.77 | -      | -      |
 | Finn et al [6]                             | Conv64            | 48.70% +/- 1.84 | -      | -      |
 | Mishra et al [6]                           | ResNet            | 55.71% +/- 0.99 | -      | -      |
 | Matching Networks (our implementation)     | Conv64            | 53.65% +/- 0.80 | -      | -      |
@@ -143,7 +143,7 @@ Here we provide experimental results of our approach as well as of our implement
 | ------------------------------------------ | ----------------- |----------------:| ------:|--------:|
 | Matching Networks [3]                      | Conv64            | 55.30%          | -      | -       |
 | Prototypical Networks [4]                  | Conv64            | 68.20% +/- 0.66 | -      | -       |
-| Ravi and Laroche [5]                       | Conv32            | 60.20% +/- 0.71 | -      | -       |
+| Ravi and Larochelle [5]                    | Conv32            | 60.20% +/- 0.71 | -      | -       |
 | Finn et al [6]                             | Conv64            | 63.10% +/- 0.92 | -      | -       |
 | Mishra et al [6]                           | ResNet            | 68.88% +/- 0.92 | -      | -       |
 | Matching Networks (our implementation)     | Conv64            | 65.76% +/- 0.68 | -      | -       |
