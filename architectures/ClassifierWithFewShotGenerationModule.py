@@ -10,17 +10,19 @@ from pdb import set_trace as breakpoint
 class LinearDiag(nn.Module):
     def __init__(self, num_features, bias=False):
         super(LinearDiag, self).__init__()
-        weight = torch.FloatTensor(num_features).fill_(1) # initialize to the identity transform
+        weight = torch.FloatTensor(num_features).fill_(
+            1
+        )  # initialize to the identity transform
         self.weight = nn.Parameter(weight, requires_grad=True)
 
         if bias:
             bias = torch.FloatTensor(num_features).fill_(0)
             self.bias = nn.Parameter(bias, requires_grad=True)
         else:
-            self.register_parameter('bias', None)
+            self.register_parameter("bias", None)
 
     def forward(self, X):
-        assert(X.dim()==2 and X.size(1)==self.weight.size(0))
+        assert X.dim() == 2 and X.size(1) == self.weight.size(0)
         out = X * self.weight.expand_as(X)
         if self.bias is not None:
             out = out + self.bias.expand_as(out)
@@ -32,10 +34,11 @@ class FeatExemplarAvgBlock(nn.Module):
         super(FeatExemplarAvgBlock, self).__init__()
 
     def forward(self, features_train, labels_train):
-        labels_train_transposed = labels_train.transpose(1,2)
+        labels_train_transposed = labels_train.transpose(1, 2)
         weight_novel = torch.bmm(labels_train_transposed, features_train)
         weight_novel = weight_novel.div(
-            labels_train_transposed.sum(dim=2, keepdim=True).expand_as(weight_novel))
+            labels_train_transposed.sum(dim=2, keepdim=True).expand_as(weight_novel)
+        )
         return weight_novel
 
 
@@ -45,32 +48,36 @@ class AttentionBasedBlock(nn.Module):
         self.nFeat = nFeat
         self.queryLayer = nn.Linear(nFeat, nFeat)
         self.queryLayer.weight.data.copy_(
-            torch.eye(nFeat, nFeat) + torch.randn(nFeat, nFeat)*0.001)
+            torch.eye(nFeat, nFeat) + torch.randn(nFeat, nFeat) * 0.001
+        )
         self.queryLayer.bias.data.zero_()
 
         self.scale_att = nn.Parameter(
-            torch.FloatTensor(1).fill_(scale_att), requires_grad=True)
-        wkeys = torch.FloatTensor(nK, nFeat).normal_(0.0, np.sqrt(2.0/nFeat))
+            torch.FloatTensor(1).fill_(scale_att), requires_grad=True
+        )
+        wkeys = torch.FloatTensor(nK, nFeat).normal_(0.0, np.sqrt(2.0 / nFeat))
         self.wkeys = nn.Parameter(wkeys, requires_grad=True)
-
 
     def forward(self, features_train, labels_train, weight_base, Kbase):
         batch_size, num_train_examples, num_features = features_train.size()
-        nKbase = weight_base.size(1) # [batch_size x nKbase x num_features]
-        labels_train_transposed = labels_train.transpose(1,2)
-        nKnovel = labels_train_transposed.size(1) # [batch_size x nKnovel x num_train_examples]
+        nKbase = weight_base.size(1)  # [batch_size x nKbase x num_features]
+        labels_train_transposed = labels_train.transpose(1, 2)
+        nKnovel = labels_train_transposed.size(
+            1
+        )  # [batch_size x nKnovel x num_train_examples]
 
         features_train = features_train.view(
-            batch_size*num_train_examples, num_features)
+            batch_size * num_train_examples, num_features
+        )
         Qe = self.queryLayer(features_train)
         Qe = Qe.view(batch_size, num_train_examples, self.nFeat)
-        Qe = F.normalize(Qe, p=2, dim=Qe.dim()-1, eps=1e-12)
+        Qe = F.normalize(Qe, p=2, dim=Qe.dim() - 1, eps=1e-12)
 
-        wkeys = self.wkeys[Kbase.view(-1)] # the keys of the base categoreis
-        wkeys = F.normalize(wkeys, p=2, dim=wkeys.dim()-1, eps=1e-12)
+        wkeys = self.wkeys[Kbase.view(-1)]  # the keys of the base categoreis
+        wkeys = F.normalize(wkeys, p=2, dim=wkeys.dim() - 1, eps=1e-12)
         # Transpose from [batch_size x nKbase x nFeat] to
         # [batch_size x self.nFeat x nKbase]
-        wkeys = wkeys.view(batch_size, nKbase, self.nFeat).transpose(1,2)
+        wkeys = wkeys.view(batch_size, nKbase, self.nFeat).transpose(1, 2)
 
         # Compute the attention coeficients
         # batch matrix multiplications: AttentionCoeficients = Qe * wkeys ==>
@@ -78,9 +85,11 @@ class AttentionBasedBlock(nn.Module):
         #   [batch_size x num_train_examples x nFeat] * [batch_size x nFeat x nKbase]
         AttentionCoeficients = self.scale_att * torch.bmm(Qe, wkeys)
         AttentionCoeficients = F.softmax(
-            AttentionCoeficients.view(batch_size*num_train_examples, nKbase))
+            AttentionCoeficients.view(batch_size * num_train_examples, nKbase)
+        )
         AttentionCoeficients = AttentionCoeficients.view(
-            batch_size, num_train_examples, nKbase)
+            batch_size, num_train_examples, nKbase
+        )
 
         # batch matrix multiplications: weight_novel = AttentionCoeficients * weight_base ==>
         # [batch_size x num_train_examples x num_features] =
@@ -91,7 +100,8 @@ class AttentionBasedBlock(nn.Module):
         #   [batch_size x nKnovel x num_train_examples] * [batch_size x num_train_examples x num_features]
         weight_novel = torch.bmm(labels_train_transposed, weight_novel)
         weight_novel = weight_novel.div(
-            labels_train_transposed.sum(dim=2, keepdim=True).expand_as(weight_novel))
+            labels_train_transposed.sum(dim=2, keepdim=True).expand_as(weight_novel)
+        )
 
         return weight_novel
 
@@ -99,49 +109,47 @@ class AttentionBasedBlock(nn.Module):
 class Classifier(nn.Module):
     def __init__(self, opt):
         super(Classifier, self).__init__()
-        self.weight_generator_type = opt['weight_generator_type']
-        self.classifier_type = opt['classifier_type']
-        assert(self.classifier_type == 'cosine' or
-               self.classifier_type == 'dotproduct')
+        self.weight_generator_type = opt["weight_generator_type"]
+        self.classifier_type = opt["classifier_type"]
+        assert self.classifier_type == "cosine" or self.classifier_type == "dotproduct"
 
-        nKall = opt['nKall']
-        nFeat = opt['nFeat']
+        nKall = opt["nKall"]
+        nFeat = opt["nFeat"]
         self.nFeat = nFeat
         self.nKall = nKall
 
-        weight_base = torch.FloatTensor(nKall, nFeat).normal_(
-            0.0, np.sqrt(2.0/nFeat))
+        # 64 x 512
+        weight_base = torch.FloatTensor(nKall, nFeat).normal_(0.0, np.sqrt(2.0 / nFeat))
         self.weight_base = nn.Parameter(weight_base, requires_grad=True)
-        self.bias = nn.Parameter(
-            torch.FloatTensor(1).fill_(0), requires_grad=True)
-        scale_cls = opt['scale_cls'] if ('scale_cls' in opt) else 10.0
+        self.bias = nn.Parameter(torch.FloatTensor(1).fill_(0), requires_grad=True)
+        scale_cls = opt["scale_cls"] if ("scale_cls" in opt) else 10.0
         self.scale_cls = nn.Parameter(
-            torch.FloatTensor(1).fill_(scale_cls),
-            requires_grad=True)
+            torch.FloatTensor(1).fill_(scale_cls), requires_grad=True
+        )
 
-        if self.weight_generator_type == 'none':
+        if self.weight_generator_type == "none":
             # If the weight generator type is `none` then feature averaging
             # is being used. However, in this case the generator does not
             # involve any learnable parameter and thus does not require
             # training.
             self.favgblock = FeatExemplarAvgBlock(nFeat)
-        elif self.weight_generator_type=='feature_averaging':
+        elif self.weight_generator_type == "feature_averaging":
             self.favgblock = FeatExemplarAvgBlock(nFeat)
             self.wnLayerFavg = LinearDiag(nFeat)
-        elif self.weight_generator_type=='attention_based':
-            scale_att = opt['scale_att'] if ('scale_att' in opt) else 10.0
+        elif self.weight_generator_type == "attention_based":
+            scale_att = opt["scale_att"] if ("scale_att" in opt) else 10.0
             self.favgblock = FeatExemplarAvgBlock(nFeat)
-            self.attblock = AttentionBasedBlock(
-                nFeat, nKall, scale_att=scale_att)
+            self.attblock = AttentionBasedBlock(nFeat, nKall, scale_att=scale_att)
             self.wnLayerFavg = LinearDiag(nFeat)
             self.wnLayerWatt = LinearDiag(nFeat)
         else:
-            raise ValueError('Not supported/recognized type {0}'.format(
-                self.weight_generator_type))
-
+            raise ValueError(
+                "Not supported/recognized type {0}".format(self.weight_generator_type)
+            )
 
     def get_classification_weights(
-            self, Kbase_ids, features_train=None, labels_train=None):
+        self, Kbase_ids, features_train=None, labels_train=None
+    ):
         """Gets the classification weights of the base and novel categories.
 
         This routine returns the classification weight of the base categories
@@ -179,63 +187,66 @@ class Classifier(nn.Module):
                 equal to nKbase + nKnovel.
         """
 
-        #***********************************************************************
-        #******** Get the classification weights for the base categories *******
+        # ***********************************************************************
+        # ******** Get the classification weights for the base categories *******
         batch_size, nKbase = Kbase_ids.size()
         weight_base = self.weight_base[Kbase_ids.view(-1)]
         weight_base = weight_base.view(batch_size, nKbase, -1)
-        #***********************************************************************
+        # ***********************************************************************
 
         if features_train is None or labels_train is None:
             # If training data for the novel categories are not provided then
             # return only the classification weights of the base categories.
             return weight_base
 
-        #***********************************************************************
-        #******* Generate classification weights for the novel categories ******
+        # ***********************************************************************
+        # ******* Generate classification weights for the novel categories ******
         _, num_train_examples, num_channels = features_train.size()
         nKnovel = labels_train.size(2)
-        if self.classifier_type=='cosine':
+        if self.classifier_type == "cosine":
             features_train = F.normalize(
-                features_train, p=2, dim=features_train.dim()-1, eps=1e-12)
-        if self.weight_generator_type=='none':
+                features_train, p=2, dim=features_train.dim() - 1, eps=1e-12
+            )
+        if self.weight_generator_type == "none":
             weight_novel = self.favgblock(features_train, labels_train)
             weight_novel = weight_novel.view(batch_size, nKnovel, num_channels)
-        elif self.weight_generator_type=='feature_averaging':
+        elif self.weight_generator_type == "feature_averaging":
             weight_novel_avg = self.favgblock(features_train, labels_train)
             weight_novel = self.wnLayerFavg(
                 weight_novel_avg.view(batch_size * nKnovel, num_channels)
             )
             weight_novel = weight_novel.view(batch_size, nKnovel, num_channels)
-        elif self.weight_generator_type=='attention_based':
+        elif self.weight_generator_type == "attention_based":
             weight_novel_avg = self.favgblock(features_train, labels_train)
             weight_novel_avg = self.wnLayerFavg(
                 weight_novel_avg.view(batch_size * nKnovel, num_channels)
             )
-            if self.classifier_type=='cosine':
+            if self.classifier_type == "cosine":
                 weight_base_tmp = F.normalize(
-                    weight_base, p=2, dim=weight_base.dim()-1, eps=1e-12)
+                    weight_base, p=2, dim=weight_base.dim() - 1, eps=1e-12
+                )
             else:
                 weight_base_tmp = weight_base
 
             weight_novel_att = self.attblock(
-                features_train, labels_train, weight_base_tmp, Kbase_ids)
+                features_train, labels_train, weight_base_tmp, Kbase_ids
+            )
             weight_novel_att = self.wnLayerWatt(
                 weight_novel_att.view(batch_size * nKnovel, num_channels)
             )
             weight_novel = weight_novel_avg + weight_novel_att
             weight_novel = weight_novel.view(batch_size, nKnovel, num_channels)
         else:
-            raise ValueError('Not supported / recognized type {0}'.format(
-                self.weight_generator_type))
-        #***********************************************************************
+            raise ValueError(
+                "Not supported / recognized type {0}".format(self.weight_generator_type)
+            )
+        # ***********************************************************************
 
         # Concatenate the base and novel classification weights and return them.
         weight_both = torch.cat([weight_base, weight_novel], dim=1)
         # weight_both shape: [batch_size x (nKbase + nKnovel) x num_channels]
 
         return weight_both
-
 
     def apply_classification_weights(self, features, cls_weights):
         """Applies the classification weight vectors to the feature vectors.
@@ -260,16 +271,16 @@ class Classifier(nn.Module):
                 classification scores of the test examples for the `nK`
                 categories.
         """
-        if self.classifier_type=='cosine':
-            features = F.normalize(
-                features, p=2, dim=features.dim()-1, eps=1e-12)
+        if self.classifier_type == "cosine":
+            features = F.normalize(features, p=2, dim=features.dim() - 1, eps=1e-12)
             cls_weights = F.normalize(
-                cls_weights, p=2, dim=cls_weights.dim()-1, eps=1e-12)
+                cls_weights, p=2, dim=cls_weights.dim() - 1, eps=1e-12
+            )
 
-        cls_scores = self.scale_cls * torch.baddbmm(1.0,
-            self.bias.view(1, 1, 1), 1.0, features, cls_weights.transpose(1,2))
+        cls_scores = self.scale_cls * torch.baddbmm(
+            1.0, self.bias.view(1, 1, 1), 1.0, features, cls_weights.transpose(1, 2)
+        )
         return cls_scores
-
 
     def forward(self, features_test, Kbase_ids, features_train=None, labels_train=None):
         """Recognize on the test examples both base and novel categories.
@@ -322,9 +333,12 @@ class Classifier(nn.Module):
                 cls_scores is [batch_size x num_test_examples x nKbase].
         """
         cls_weights = self.get_classification_weights(
-            Kbase_ids, features_train, labels_train)
-        cls_scores = self.apply_classification_weights(
-            features_test, cls_weights)
+            Kbase_ids, features_train, labels_train
+        )
+        # torch.Size([8, 59]) torch.Size([8, 25, 3200]) torch.Size([8, 25, 5])
+        # cls_weights: torch.Size([8, 64, 3200])
+        cls_scores = self.apply_classification_weights(features_test, cls_weights)
+        # torch.Size([8, 30, 64])
         return cls_scores
 
 

@@ -19,7 +19,8 @@ class ConvBlock(nn.Module):
 
     def forward(self, x):
         out = self.layers(x)
-	return out
+        
+        return out
 
 class ConvNet(nn.Module):
     def __init__(self, opt):
