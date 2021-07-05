@@ -23,60 +23,83 @@ import algorithms as alg
 from dataloader import MiniImageNet, FewShotDataloader
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--config', type=str, required=True, default='',
-    help='config file with parameters of the experiment. It is assumed that all'
-         ' the config file is placed on  ')
-parser.add_argument('--evaluate', default=False, action='store_true',
-    help='If True, then no training is performed and the model is only '
-         'evaluated on the validation or test set of MiniImageNet.')
-parser.add_argument('--num_workers', type=int, default=4,
-    help='number of data loading workers')
-parser.add_argument('--cuda', type=bool, default=True, help='enables cuda')
-parser.add_argument('--testset', default=False, action='store_true',
-    help='If True, the model is evaluated on the test set of MiniImageNet. '
-         'Otherwise, the validation set is used for evaluation.')
+parser.add_argument(
+    "--config",
+    type=str,
+    required=True,
+    default="",
+    help="config file with parameters of the experiment. It is assumed that all"
+    " the config file is placed on  ",
+)
+parser.add_argument(
+    "--evaluate",
+    default=False,
+    action="store_true",
+    help="If True, then no training is performed and the model is only "
+    "evaluated on the validation or test set of MiniImageNet.",
+)
+parser.add_argument(
+    "--num_workers", type=int, default=4, help="number of data loading workers"
+)
+parser.add_argument("--cuda", type=bool, default=True, help="enables cuda")
+parser.add_argument(
+    "--testset",
+    default=False,
+    action="store_true",
+    help="If True, the model is evaluated on the test set of MiniImageNet. "
+    "Otherwise, the validation set is used for evaluation.",
+)
 args_opt = parser.parse_args()
 
-exp_config_file = os.path.join('.', 'config', args_opt.config + '.py')
-exp_directory = os.path.join('.', 'experiments', args_opt.config)
+exp_config_file = os.path.join(".", "config", args_opt.config + ".py")
+exp_directory = os.path.join(".", "experiments", args_opt.config)
 
 # Load the configuration params of the experiment
-print('Launching experiment: %s' % exp_config_file)
-config = imp.load_source("",exp_config_file).config
-config['exp_dir'] = exp_directory # the place where logs, models, and other stuff will be stored
-print('Loading experiment %s from file: %s' %
-      (args_opt.config, exp_config_file))
-print('Generated logs, snapshots, and model files will be stored on %s' %
-      (config['exp_dir']))
+print("Launching experiment: %s" % exp_config_file)
+config = imp.load_source("", exp_config_file).config
+config[
+    "exp_dir"
+] = exp_directory  # the place where logs, models, and other stuff will be stored
+print("Loading experiment %s from file: %s" % (args_opt.config, exp_config_file))
+print(
+    "Generated logs, snapshots, and model files will be stored on %s"
+    % (config["exp_dir"])
+)
 
 # Set train and test datasets and the corresponding data loaders
 if args_opt.testset:
-    test_split = 'test'
+    test_split = "test"
     epoch_size = 600
 else:
-    test_split = 'val'
+    test_split = "val"
     epoch_size = 2000
 
-data_test_opt = config['data_test_opt']
+data_test_opt = config["data_test_opt"]
 dloader_test = FewShotDataloader(
     dataset=MiniImageNet(phase=test_split),
-    nKnovel=data_test_opt['nKnovel'], # number of novel categories on each training episode.
-    nKbase=data_test_opt['nKbase'], # number of base categories.
-    nExemplars=data_test_opt['nExemplars'], # num training examples per novel category
-    nTestNovel=data_test_opt['nTestNovel'], # num test examples for all the novel categories
-    nTestBase=data_test_opt['nTestBase'], # num test examples for all the base categories
+    nKnovel=data_test_opt[
+        "nKnovel"
+    ],  # number of novel categories on each training episode.
+    nKbase=data_test_opt["nKbase"],  # number of base categories.
+    nExemplars=data_test_opt["nExemplars"],  # num training examples per novel category
+    nTestNovel=data_test_opt[
+        "nTestNovel"
+    ],  # num test examples for all the novel categories
+    nTestBase=data_test_opt[
+        "nTestBase"
+    ],  # num test examples for all the base categories
     batch_size=1,
     num_workers=0,
-    epoch_size=epoch_size, # num of batches per epoch
+    epoch_size=epoch_size,  # num of batches per epoch
 )
 
 algorithm = alg.FewShot(config)
-if args_opt.cuda: # enable cuda
+if args_opt.cuda:  # enable cuda
     algorithm.load_to_gpu()
 
 # In evaluation mode we load the checkpoint with the highest novel category
 # recognition accuracy on the validation set of MiniImagenet.
-algorithm.load_checkpoint(epoch='*', train=False, suffix='.best')
+algorithm.load_checkpoint(epoch="*", train=False, suffix=".best")
 
 # Run evaluation.
 algorithm.evaluate(dloader_test)

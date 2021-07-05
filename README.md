@@ -1,4 +1,6 @@
 # *Dynamic Few-Shot Visual Learning without Forgetting*
+####  This is a modified version of https://github.com/gidariss/FewShotWithoutForgetting
+* Several bugs are fixed. This code is tested on collab gpu.
 
 ### Introduction
 
@@ -33,7 +35,10 @@ This code is released under the MIT License (refer to the LICENSE file for detai
 
 ## Running experiments on MiniImageNet.
 
-First, you must download the MiniImagenet dataset from [here](https://mega.nz/#!rx0wGQyS!96sFlAr6yyv-9QQPCm5OBFbOm4XSD0t-HlmGaT5GaiE) and set in [dataloader.py](https://github.com/gidariss/FewShotWithoutForgetting/blob/master/dataloader.py#L28) the path to where the dataset resides in your machine. We recommend creating a *dataset* directory `mkdir datasets` and placing the downloaded dataset there.
+* First, you must download the MiniImagenet dataset from [here](https://mega.nz/#!rx0wGQyS!96sFlAr6yyv-9QQPCm5OBFbOm4XSD0t-HlmGaT5GaiE) and set in [dataloader.py](https://github.com/gidariss/FewShotWithoutForgetting/blob/master/dataloader.py#L28) the path to where the dataset resides in your machine. We recommend creating a *dataset* directory `mkdir datasets` and placing the downloaded dataset there.
+
+* Run the command below to address the pickle loading bottleneck. This helps to solve the dataloading bottleneck.
+```!python rewrite_pickle_files.py```
 
 ### Training and evaluating our model on Mini-ImageNet.
 

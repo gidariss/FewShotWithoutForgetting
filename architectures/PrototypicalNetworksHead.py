@@ -11,19 +11,19 @@ def L2SquareDist(A, B, average=True):
     # input A must be:  [nB x Na x nC]
     # input B must be:  [nB x Nb x nC]
     # output C will be: [nB x Na x Nb]
-    assert(A.dim()==3)
-    assert(B.dim()==3)
-    assert(A.size(0)==B.size(0) and A.size(2)==B.size(2))
+    assert A.dim() == 3
+    assert B.dim() == 3
+    assert A.size(0) == B.size(0) and A.size(2) == B.size(2)
     nB = A.size(0)
     Na = A.size(1)
     Nb = B.size(1)
     nC = A.size(2)
 
     # AB = A * B = [nB x Na x nC] * [nB x nC x Nb] = [nB x Na x Nb]
-    AB = torch.bmm(A, B.transpose(1,2))
+    AB = torch.bmm(A, B.transpose(1, 2))
 
-    AA = (A * A).sum(dim=2,keepdim=True).view(nB, Na, 1) # [nB x Na x 1]
-    BB = (B * B).sum(dim=2,keepdim=True).view(nB, 1, Nb) # [nB x 1 x Nb]
+    AA = (A * A).sum(dim=2, keepdim=True).view(nB, Na, 1)  # [nB x Na x 1]
+    BB = (B * B).sum(dim=2, keepdim=True).view(nB, 1, Nb)  # [nB x 1 x Nb]
     # l2squaredist = A*A + B*B - 2 * A * B
     dist = AA.expand_as(AB) + BB.expand_as(AB) - 2 * AB
     if average:
@@ -35,9 +35,10 @@ def L2SquareDist(A, B, average=True):
 class PrototypicalNetwork(nn.Module):
     def __init__(self, opt):
         super(PrototypicalNetwork, self).__init__()
-        scale_cls = opt['scale_cls'] if ('scale_cls' in opt) else 1.0
+        scale_cls = opt["scale_cls"] if ("scale_cls" in opt) else 1.0
         self.scale_cls = nn.Parameter(
-            torch.FloatTensor(1).fill_(scale_cls), requires_grad=True)
+            torch.FloatTensor(1).fill_(scale_cls), requires_grad=True
+        )
 
     def forward(self, features_test, features_train, labels_train):
         """Recognize novel categories based on the Prototypical Nets approach.
@@ -64,16 +65,16 @@ class PrototypicalNetwork(nn.Module):
                 classification scores of the test feature vectors for the
                 nKnovel novel categories.
         """
-        assert(features_train.dim() == 3)
-        assert(labels_train.dim() == 3)
-        assert(features_test.dim() == 3)
-        assert(features_train.size(0) == labels_train.size(0))
-        assert(features_train.size(0) == features_test.size(0))
-        assert(features_train.size(1) == labels_train.size(1))
-        assert(features_train.size(2) == features_test.size(2))
+        assert features_train.dim() == 3
+        assert labels_train.dim() == 3
+        assert features_test.dim() == 3
+        assert features_train.size(0) == labels_train.size(0)
+        assert features_train.size(0) == features_test.size(0)
+        assert features_train.size(1) == labels_train.size(1)
+        assert features_train.size(2) == features_test.size(2)
 
-        #************************* Compute Prototypes **************************
-        labels_train_transposed = labels_train.transpose(1,2)
+        # ************************* Compute Prototypes **************************
+        labels_train_transposed = labels_train.transpose(1, 2)
         # Batch matrix multiplication:
         #   prototypes = labels_train_transposed * features_train ==>
         #   [batch_size x nKnovel x num_channels] =
@@ -83,9 +84,10 @@ class PrototypicalNetwork(nn.Module):
         prototypes = prototypes.div(
             labels_train_transposed.sum(dim=2, keepdim=True).expand_as(prototypes)
         )
-        #***********************************************************************
+        # ***********************************************************************
         scores_cls = -self.scale_cls * L2SquareDist(features_test, prototypes)
         return scores_cls
+
 
 def create_model(opt):
     return PrototypicalNetwork(opt)

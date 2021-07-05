@@ -1,4 +1,3 @@
-
 from __future__ import print_function
 
 import os
@@ -25,14 +24,18 @@ from pdb import set_trace as breakpoint
 
 
 # Set the appropriate paths of the datasets here.
-_MINI_IMAGENET_DATASET_DIR = './datasets/MiniImagenet'
-_IMAGENET_DATASET_DIR = './datasets/IMAGENET/ILSVRC2012'
+_MINI_IMAGENET_DATASET_DIR = "./datasets/MiniImagenet"
+_IMAGENET_DATASET_DIR = "./datasets/IMAGENET/ILSVRC2012"
 
-_IMAGENET_LOWSHOT_BENCHMARK_CATEGORY_SPLITS_PATH = './data/IMAGENET_LOWSHOT_BENCHMARK_CATEGORY_SPLITS.json'
+_IMAGENET_LOWSHOT_BENCHMARK_CATEGORY_SPLITS_PATH = (
+    "./data/IMAGENET_LOWSHOT_BENCHMARK_CATEGORY_SPLITS.json"
+)
 
-transformtypedict=dict(
-    Brightness=ImageEnhance.Brightness, Contrast=ImageEnhance.Contrast,
-    Sharpness=ImageEnhance.Sharpness, Color=ImageEnhance.Color
+transformtypedict = dict(
+    Brightness=ImageEnhance.Brightness,
+    Contrast=ImageEnhance.Contrast,
+    Sharpness=ImageEnhance.Sharpness,
+    Color=ImageEnhance.Color,
 )
 
 
@@ -51,15 +54,17 @@ def get_label_ids(class_to_idx, class_names, inside=True):
 
 class ImageJitter(object):
     def __init__(self, transformdict):
-        self.transforms = [(transformtypedict[k], transformdict[k]) for k in transformdict]
+        self.transforms = [
+            (transformtypedict[k], transformdict[k]) for k in transformdict
+        ]
 
     def __call__(self, img):
         out = img
         randtensor = torch.rand(len(self.transforms))
 
         for i, (transformer, alpha) in enumerate(self.transforms):
-            r = alpha*(randtensor[i]*2.0 -1.0) + 1
-            out = transformer(out).enhance(r).convert('RGB')
+            r = alpha * (randtensor[i] * 2.0 - 1.0) + 1
+            out = transformer(out).enhance(r).convert("RGB")
 
         return out
 
@@ -86,42 +91,47 @@ def buildLabelIndex(labels):
 
 
 def load_data(file):
-    with open(file, 'rb') as fo:
-        data = pickle.load(fo)
+    with open(file, "rb") as fo:
+        # data = pickle.load(fo)
+        data = pickle.load(fo, encoding='iso-8859-1')
+        # @ TODO data = pickle.load(fo, encoding='iso-8859-1')
     return data
 
 
 class MiniImageNet(data.Dataset):
-    def __init__(self, phase='train', do_not_use_random_transf=False):
+    def __init__(self, phase="train", do_not_use_random_transf=False):
 
-        self.base_folder = 'miniImagenet'
-        assert(phase=='train' or phase=='val' or phase=='test')
+        self.base_folder = "miniImagenet"
+        assert phase == "train" or phase == "val" or phase == "test"
         self.phase = phase
-        self.name = 'MiniImageNet_' + phase
+        self.name = "MiniImageNet_" + phase
 
-        print('Loading mini ImageNet dataset - phase {0}'.format(phase))
+        print("Loading mini ImageNet dataset - phase {0}".format(phase))
         file_train_categories_train_phase = os.path.join(
             _MINI_IMAGENET_DATASET_DIR,
-            'miniImageNet_category_split_train_phase_train.pickle')
+            "miniImageNet_category_split_train_phase_train.pickle",
+        )
         file_train_categories_val_phase = os.path.join(
             _MINI_IMAGENET_DATASET_DIR,
-            'miniImageNet_category_split_train_phase_val.pickle')
+            "miniImageNet_category_split_train_phase_val.pickle",
+        )
         file_train_categories_test_phase = os.path.join(
             _MINI_IMAGENET_DATASET_DIR,
-            'miniImageNet_category_split_train_phase_test.pickle')
+            "miniImageNet_category_split_train_phase_test.pickle",
+        )
         file_val_categories_val_phase = os.path.join(
-            _MINI_IMAGENET_DATASET_DIR,
-            'miniImageNet_category_split_val.pickle')
+            _MINI_IMAGENET_DATASET_DIR, "miniImageNet_category_split_val.pickle"
+        )
         file_test_categories_test_phase = os.path.join(
-            _MINI_IMAGENET_DATASET_DIR,
-            'miniImageNet_category_split_test.pickle')
+            _MINI_IMAGENET_DATASET_DIR, "miniImageNet_category_split_test.pickle"
+        )
 
-        if self.phase=='train':
+        if self.phase == "train":
             # During training phase we only load the training phase images
             # of the training categories (aka base categories).
             data_train = load_data(file_train_categories_train_phase)
-            self.data = data_train['data']
-            self.labels = data_train['labels']
+            self.data = data_train["data"]
+            self.labels = data_train["labels"]
 
             self.label2ind = buildLabelIndex(self.labels)
             self.labelIds = sorted(self.label2ind.keys())
@@ -129,15 +139,15 @@ class MiniImageNet(data.Dataset):
             self.labelIds_base = self.labelIds
             self.num_cats_base = len(self.labelIds_base)
 
-        elif self.phase=='val' or self.phase=='test':
-            if self.phase=='test':
+        elif self.phase == "val" or self.phase == "test":
+            if self.phase == "test":
                 # load data that will be used for evaluating the recognition
                 # accuracy of the base categories.
                 data_base = load_data(file_train_categories_test_phase)
                 # load data that will be use for evaluating the few-shot recogniton
                 # accuracy on the novel categories.
                 data_novel = load_data(file_test_categories_test_phase)
-            else: # phase=='val'
+            else:  # phase=='val'
                 # load data that will be used for evaluating the recognition
                 # accuracy of the base categories.
                 data_base = load_data(file_train_categories_val_phase)
@@ -145,41 +155,42 @@ class MiniImageNet(data.Dataset):
                 # accuracy on the novel categories.
                 data_novel = load_data(file_val_categories_val_phase)
 
-            self.data = np.concatenate(
-                [data_base['data'], data_novel['data']], axis=0)
-            self.labels = data_base['labels'] + data_novel['labels']
+            self.data = np.concatenate([data_base["data"], data_novel["data"]], axis=0)
+            self.labels = data_base["labels"] + data_novel["labels"]
 
             self.label2ind = buildLabelIndex(self.labels)
             self.labelIds = sorted(self.label2ind.keys())
             self.num_cats = len(self.labelIds)
 
-            self.labelIds_base = buildLabelIndex(data_base['labels']).keys()
-            self.labelIds_novel = buildLabelIndex(data_novel['labels']).keys()
+            self.labelIds_base = buildLabelIndex(data_base["labels"]).keys()
+            self.labelIds_novel = buildLabelIndex(data_novel["labels"]).keys()
             self.num_cats_base = len(self.labelIds_base)
             self.num_cats_novel = len(self.labelIds_novel)
             intersection = set(self.labelIds_base) & set(self.labelIds_novel)
-            assert(len(intersection) == 0)
+            assert len(intersection) == 0
         else:
-            raise ValueError('Not valid phase {0}'.format(self.phase))
+            raise ValueError("Not valid phase {0}".format(self.phase))
 
-        mean_pix = [x/255.0 for x in [120.39586422,  115.59361427, 104.54012653]]
-        std_pix = [x/255.0 for x in [70.68188272,  68.27635443,  72.54505529]]
+        mean_pix = [x / 255.0 for x in [120.39586422, 115.59361427, 104.54012653]]
+        std_pix = [x / 255.0 for x in [70.68188272, 68.27635443, 72.54505529]]
         normalize = transforms.Normalize(mean=mean_pix, std=std_pix)
 
-        if (self.phase=='test' or self.phase=='val') or (do_not_use_random_transf==True):
-            self.transform = transforms.Compose([
-                lambda x: np.asarray(x),
-                transforms.ToTensor(),
-                normalize
-            ])
+        if (self.phase == "test" or self.phase == "val") or (
+            do_not_use_random_transf == True
+        ):
+            self.transform = transforms.Compose(
+                [lambda x: np.asarray(x), transforms.ToTensor(), normalize]
+            )
         else:
-            self.transform = transforms.Compose([
-                transforms.RandomCrop(84, padding=8),
-                transforms.RandomHorizontalFlip(),
-                lambda x: np.asarray(x),
-                transforms.ToTensor(),
-                normalize
-            ])
+            self.transform = transforms.Compose(
+                [
+                    transforms.RandomCrop(84, padding=8),
+                    transforms.RandomHorizontalFlip(),
+                    lambda x: np.asarray(x),
+                    transforms.ToTensor(),
+                    normalize,
+                ]
+            )
 
     def __getitem__(self, index):
         img, label = self.data[index], self.labels[index]
@@ -194,33 +205,37 @@ class MiniImageNet(data.Dataset):
         return len(self.data)
 
 
-class FewShotDataloader():
-    def __init__(self,
-                 dataset,
-                 nKnovel=5, # number of novel categories.
-                 nKbase=-1, # number of base categories.
-                 nExemplars=1, # number of training examples per novel category.
-                 nTestNovel=15*5, # number of test examples for all the novel categories.
-                 nTestBase=15*5, # number of test examples for all the base categories.
-                 batch_size=1, # number of training episodes per batch.
-                 num_workers=4,
-                 epoch_size=2000, # number of batches per epoch.
-                 ):
+class FewShotDataloader:
+    def __init__(
+        self,
+        dataset,
+        nKnovel=5,  # number of novel categories.
+        nKbase=-1,  # number of base categories.
+        nExemplars=1,  # number of training examples per novel category.
+        nTestNovel=15 * 5,  # number of test examples for all the novel categories.
+        nTestBase=15 * 5,  # number of test examples for all the base categories.
+        batch_size=1,  # number of training episodes per batch.
+        num_workers=4,
+        epoch_size=2000,  # number of batches per epoch.
+    ):
 
         self.dataset = dataset
         self.phase = self.dataset.phase
-        max_possible_nKnovel = (self.dataset.num_cats_base if self.phase=='train'
-                                else self.dataset.num_cats_novel)
-        assert(nKnovel >= 0 and nKnovel < max_possible_nKnovel)
+        max_possible_nKnovel = (
+            self.dataset.num_cats_base
+            if self.phase == "train"
+            else self.dataset.num_cats_novel
+        )
+        assert nKnovel >= 0 and nKnovel < max_possible_nKnovel
         self.nKnovel = nKnovel
 
         max_possible_nKbase = self.dataset.num_cats_base
         nKbase = nKbase if nKbase >= 0 else max_possible_nKbase
-        if self.phase=='train' and nKbase > 0:
+        if self.phase == "train" and nKbase > 0:
             nKbase -= self.nKnovel
             max_possible_nKbase -= self.nKnovel
 
-        assert(nKbase >= 0 and nKbase <= max_possible_nKbase)
+        assert nKbase >= 0 and nKbase <= max_possible_nKbase
         self.nKbase = nKbase
 
         self.nExemplars = nExemplars
@@ -229,7 +244,7 @@ class FewShotDataloader():
         self.batch_size = batch_size
         self.epoch_size = epoch_size
         self.num_workers = num_workers
-        self.is_eval_mode = (self.phase=='test') or (self.phase=='val')
+        self.is_eval_mode = (self.phase == "test") or (self.phase == "val")
 
     def sampleImageIdsFrom(self, cat_id, sample_size=1):
         """
@@ -244,8 +259,8 @@ class FewShotDataloader():
         Returns:
             image_ids: a list of length `sample_size` with unique image ids.
         """
-        assert(cat_id in self.dataset.label2ind)
-        assert(len(self.dataset.label2ind[cat_id]) >= sample_size)
+        assert cat_id in self.dataset.label2ind
+        assert len(self.dataset.label2ind[cat_id]) >= sample_size
         # Note: random.sample samples elements without replacement.
         return random.sample(self.dataset.label2ind[cat_id], sample_size)
 
@@ -262,14 +277,14 @@ class FewShotDataloader():
         Returns:
             cat_ids: a list of length `sample_size` with unique category ids.
         """
-        if cat_set=='base':
+        if cat_set == "base":
             labelIds = self.dataset.labelIds_base
-        elif cat_set=='novel':
+        elif cat_set == "novel":
             labelIds = self.dataset.labelIds_novel
         else:
-            raise ValueError('Not recognized category set {}'.format(cat_set))
+            raise ValueError("Not recognized category set {}".format(cat_set))
 
-        assert(len(labelIds) >= sample_size)
+        assert len(labelIds) >= sample_size
         # return sample_size unique categories chosen from labelIds set of
         # categories (that can be either self.labelIds_base or self.labelIds_novel)
         # Note: random.sample samples elements without replacement.
@@ -291,18 +306,18 @@ class FewShotDataloader():
                 categories.
         """
         if self.is_eval_mode:
-            assert(nKnovel <= self.dataset.num_cats_novel)
+            assert nKnovel <= self.dataset.num_cats_novel
             # sample from the set of base categories 'nKbase' number of base
             # categories.
-            Kbase = sorted(self.sampleCategories('base', nKbase))
+            Kbase = sorted(self.sampleCategories("base", nKbase))
             # sample from the set of novel categories 'nKnovel' number of novel
             # categories.
-            Knovel = sorted(self.sampleCategories('novel', nKnovel))
+            Knovel = sorted(self.sampleCategories("novel", nKnovel))
         else:
             # sample from the set of base categories 'nKnovel' + 'nKbase' number
             # of categories.
-            cats_ids = self.sampleCategories('base', nKnovel+nKbase)
-            assert(len(cats_ids) == (nKnovel+nKbase))
+            cats_ids = self.sampleCategories("base", nKnovel + nKbase)
+            assert len(cats_ids) == (nKnovel + nKbase)
             # Randomly pick 'nKnovel' number of fake novel categories and keep
             # the rest as base categories.
             random.shuffle(cats_ids)
@@ -331,25 +346,29 @@ class FewShotDataloader():
             # Sample for each base category a number images such that the total
             # number sampled images of all categories to be equal to `nTestBase`.
             KbaseIndices = np.random.choice(
-                np.arange(len(Kbase)), size=nTestBase, replace=True)
+                np.arange(len(Kbase)), size=nTestBase, replace=True
+            )
             KbaseIndices, NumImagesPerCategory = np.unique(
-                KbaseIndices, return_counts=True)
+                KbaseIndices, return_counts=True
+            )
 
             for Kbase_idx, NumImages in zip(KbaseIndices, NumImagesPerCategory):
                 imd_ids = self.sampleImageIdsFrom(
-                    Kbase[Kbase_idx], sample_size=NumImages)
+                    Kbase[Kbase_idx], sample_size=NumImages
+                )
                 Tbase += [(img_id, Kbase_idx) for img_id in imd_ids]
 
-        assert(len(Tbase) == nTestBase)
+        assert len(Tbase) == nTestBase
 
         return Tbase
 
     def sample_train_and_test_examples_for_novel_categories(
-            self, Knovel, nTestNovel, nExemplars, nKbase):
+        self, Knovel, nTestNovel, nExemplars, nKbase
+    ):
         """Samples train and test examples of the novel categories.
 
         Args:
-    	    Knovel: a list with the ids of the novel categories.
+            Knovel: a list with the ids of the novel categories.
             nTestNovel: the total number of test images that will be sampled
                 from all the novel categories.
             nExemplars: the number of training examples per novel category that
@@ -374,21 +393,24 @@ class FewShotDataloader():
         nKnovel = len(Knovel)
         Tnovel = []
         Exemplars = []
-        assert((nTestNovel % nKnovel) == 0)
-        nEvalExamplesPerClass = nTestNovel / nKnovel
+        assert (nTestNovel % nKnovel) == 0
+        # int(math.ceil(float(nTestNovel) / nKnovel))
+        # @TODO
+        # nEvalExamplesPerClass = int(nTestNovel / nKnovel)
+        nEvalExamplesPerClass = int(math.ceil(float(nTestNovel) / nKnovel))
 
         for Knovel_idx in range(len(Knovel)):
             imd_ids = self.sampleImageIdsFrom(
-                Knovel[Knovel_idx],
-                sample_size=(nEvalExamplesPerClass + nExemplars))
+                Knovel[Knovel_idx], sample_size=(nEvalExamplesPerClass + nExemplars)
+            )
 
             imds_tnovel = imd_ids[:nEvalExamplesPerClass]
             imds_ememplars = imd_ids[nEvalExamplesPerClass:]
 
-            Tnovel += [(img_id, nKbase+Knovel_idx) for img_id in imds_tnovel]
-            Exemplars += [(img_id, nKbase+Knovel_idx) for img_id in imds_ememplars]
-        assert(len(Tnovel) == nTestNovel)
-        assert(len(Exemplars) == len(Knovel) * nExemplars)
+            Tnovel += [(img_id, nKbase + Knovel_idx) for img_id in imds_tnovel]
+            Exemplars += [(img_id, nKbase + Knovel_idx) for img_id in imds_ememplars]
+        assert len(Tnovel) == nTestNovel
+        assert len(Exemplars) == len(Knovel) * nExemplars
         random.shuffle(Exemplars)
 
         return Tnovel, Exemplars
@@ -404,7 +426,8 @@ class FewShotDataloader():
         Kbase, Knovel = self.sample_base_and_novel_categories(nKbase, nKnovel)
         Tbase = self.sample_test_examples_for_base_categories(Kbase, nTestBase)
         Tnovel, Exemplars = self.sample_train_and_test_examples_for_novel_categories(
-            Knovel, nTestNovel, nExemplars, nKbase)
+            Knovel, nTestNovel, nExemplars, nKbase
+        )
 
         # concatenate the base and novel category examples.
         Test = Tbase + Tnovel
@@ -433,7 +456,8 @@ class FewShotDataloader():
                 of each example.
         """
         images = torch.stack(
-            [self.dataset[img_idx][0] for img_idx, _ in examples], dim=0)
+            [self.dataset[img_idx][0] for img_idx, _ in examples], dim=0
+        )
         labels = torch.LongTensor([label for _, label in examples])
         return images, labels
 
@@ -441,6 +465,7 @@ class FewShotDataloader():
         rand_seed = epoch
         random.seed(rand_seed)
         np.random.seed(rand_seed)
+
         def load_function(iter_idx):
             Exemplars, Test, Kall, nKbase = self.sample_episode()
             Xt, Yt = self.createExamplesTensorData(Test)
@@ -452,11 +477,13 @@ class FewShotDataloader():
                 return Xt, Yt, Kall, nKbase
 
         tnt_dataset = tnt.dataset.ListDataset(
-            elem_list=range(self.epoch_size), load=load_function)
+            elem_list=range(self.epoch_size), load=load_function
+        )
         data_loader = tnt_dataset.parallel(
             batch_size=self.batch_size,
             num_workers=(0 if self.is_eval_mode else self.num_workers),
-            shuffle=(False if self.is_eval_mode else True))
+            shuffle=(False if self.is_eval_mode else True),
+        )
 
         return data_loader
 
@@ -464,38 +491,39 @@ class FewShotDataloader():
         return self.get_iterator(epoch)
 
     def __len__(self):
-        return (self.epoch_size / self.batch_size)
+        return int(math.ceil(float(self.epoch_size) / self.batch_size))
+        # return self.epoch_size / self.batch_size
 
 
 class ImageNetLowShot(data.Dataset):
-    def __init__(self,
-                 phase='train',
-                 split='train',
-                 do_not_use_random_transf=False):
+    def __init__(self, phase="train", split="train", do_not_use_random_transf=False):
         self.phase = phase
         self.split = split
-        assert(phase=='train' or phase=='test' or phase=='val')
-        assert(split=='train' or split=='val')
-        self.name = 'ImageNetLowShot_Phase_' + phase + '_Split_' + split
+        assert phase == "train" or phase == "test" or phase == "val"
+        assert split == "train" or split == "val"
+        self.name = "ImageNetLowShot_Phase_" + phase + "_Split_" + split
 
-        print('Loading ImageNet dataset (for few-shot benchmark) - phase {0}'.
-            format(phase))
+        print(
+            "Loading ImageNet dataset (for few-shot benchmark) - phase {0}".format(
+                phase
+            )
+        )
 
-        #***********************************************************************
-        with open(_IMAGENET_LOWSHOT_BENCHMARK_CATEGORY_SPLITS_PATH, 'r') as f:
+        # ***********************************************************************
+        with open(_IMAGENET_LOWSHOT_BENCHMARK_CATEGORY_SPLITS_PATH, "r") as f:
             label_idx = json.load(f)
-        base_classes = label_idx['base_classes']
-        novel_classes_val_phase = label_idx['novel_classes_1']
-        novel_classes_test_phase = label_idx['novel_classes_2']
-        #***********************************************************************
+        base_classes = label_idx["base_classes"]
+        novel_classes_val_phase = label_idx["novel_classes_1"]
+        novel_classes_test_phase = label_idx["novel_classes_2"]
+        # ***********************************************************************
 
         transforms_list = []
-        if (phase!='train') or (do_not_use_random_transf==True):
+        if (phase != "train") or (do_not_use_random_transf == True):
             transforms_list.append(transforms.Scale(256))
             transforms_list.append(transforms.CenterCrop(224))
         else:
             transforms_list.append(transforms.RandomSizedCrop(224))
-            jitter_params = {'Brightness': 0.4, 'Contrast': 0.4, 'Color': 0.4}
+            jitter_params = {"Brightness": 0.4, "Contrast": 0.4, "Color": 0.4}
             transforms_list.append(ImageJitter(jitter_params))
             transforms_list.append(transforms.RandomHorizontalFlip())
 
@@ -507,27 +535,30 @@ class ImageNetLowShot(data.Dataset):
 
         self.transform = transforms.Compose(transforms_list)
 
-        traindir = os.path.join(_IMAGENET_DATASET_DIR, 'train')
-        valdir = os.path.join(_IMAGENET_DATASET_DIR, 'val')
+        traindir = os.path.join(_IMAGENET_DATASET_DIR, "train")
+        valdir = os.path.join(_IMAGENET_DATASET_DIR, "val")
         self.data = datasets.ImageFolder(
-            traindir if split=='train' else valdir, self.transform)
+            traindir if split == "train" else valdir, self.transform
+        )
         self.labels = [item[1] for item in self.data.imgs]
 
         self.label2ind = buildLabelIndex(self.labels)
         self.labelIds = sorted(self.label2ind.keys())
         self.num_cats = len(self.labelIds)
-        assert(self.num_cats==1000)
+        assert self.num_cats == 1000
 
         self.labelIds_base = base_classes
         self.num_cats_base = len(self.labelIds_base)
-        if self.phase=='val' or self.phase=='test':
+        if self.phase == "val" or self.phase == "test":
             self.labelIds_novel = (
-                novel_classes_val_phase if (self.phase=='val') else
-                novel_classes_test_phase)
+                novel_classes_val_phase
+                if (self.phase == "val")
+                else novel_classes_test_phase
+            )
             self.num_cats_novel = len(self.labelIds_novel)
 
             intersection = set(self.labelIds_base) & set(self.labelIds_novel)
-            assert(len(intersection) == 0)
+            assert len(intersection) == 0
 
     def __getitem__(self, index):
         img, label = self.data[index]
@@ -538,12 +569,12 @@ class ImageNetLowShot(data.Dataset):
 
 
 class ImageNet(data.Dataset):
-    def __init__(self, split='train'):
+    def __init__(self, split="train"):
         self.split = split
-        assert(split=='train' or split=='val')
-        self.name = 'ImageNet_Split_' + split
+        assert split == "train" or split == "val"
+        self.name = "ImageNet_Split_" + split
 
-        print('Loading ImageNet dataset - split {0}'.format(split))
+        print("Loading ImageNet dataset - split {0}".format(split))
         transforms_list = []
         transforms_list.append(transforms.Scale(256))
         transforms_list.append(transforms.CenterCrop(224))
@@ -554,10 +585,11 @@ class ImageNet(data.Dataset):
         transforms_list.append(transforms.Normalize(mean=mean_pix, std=std_pix))
         self.transform = transforms.Compose(transforms_list)
 
-        traindir = os.path.join(_IMAGENET_DATASET_DIR, 'train')
-        valdir = os.path.join(_IMAGENET_DATASET_DIR, 'val')
+        traindir = os.path.join(_IMAGENET_DATASET_DIR, "train")
+        valdir = os.path.join(_IMAGENET_DATASET_DIR, "val")
         self.data = datasets.ImageFolder(
-            traindir if split=='train' else valdir, self.transform)
+            traindir if split == "train" else valdir, self.transform
+        )
         self.labels = [item[1] for item in self.data.imgs]
 
     def __getitem__(self, index):
@@ -568,7 +600,7 @@ class ImageNet(data.Dataset):
         return len(self.data)
 
 
-class SimpleDataloader():
+class SimpleDataloader:
     def __init__(self, dataset, batch_size, num_workers=4):
         self.dataset = dataset
         self.batch_size = batch_size
@@ -581,12 +613,15 @@ class SimpleDataloader():
             return img, label
 
         tnt_dataset = tnt.dataset.ListDataset(
-            elem_list=range(self.epoch_size), load=load_fun_)
+            elem_list=range(self.epoch_size), load=load_fun_
+        )
 
         data_loader = tnt_dataset.parallel(
             batch_size=self.batch_size,
             num_workers=self.num_workers,
-            shuffle=False, drop_last=False)
+            shuffle=False,
+            drop_last=False,
+        )
 
         return data_loader
 
@@ -594,63 +629,65 @@ class SimpleDataloader():
         return self.get_iterator()
 
     def __len__(self):
-        return (self.epoch_size / self.batch_size)
+        # @TODO
+        return int(math.ceil(float(self.epoch_size) / self.batch_size))
+        # return int(self.epoch_size / self.batch_size)
 
 
-class ImageNetLowShotFeaturesLegacy():
-    def __init__(
-        self,
-        data_dir,
-        phase='train',
-        add_novel_split='val'):
+class ImageNetLowShotFeaturesLegacy:
+    def __init__(self, data_dir, phase="train", add_novel_split="val"):
 
         self.phase = phase
-        assert(phase=='train' or phase=='test' or phase=='val')
-        self.name = 'ImageNetLowShotFeatures_Phase_' + phase
+        assert phase == "train" or phase == "test" or phase == "val"
+        self.name = "ImageNetLowShotFeatures_Phase_" + phase
 
-        split = 'train' if (phase=='train') else 'val'
-        dataset_file = os.path.join(data_dir, 'feature_dataset_'+split+'.json')
-        self.data_file = h5py.File(dataset_file, 'r')
-        self.count = self.data_file['count'][0]
-        self.features = self.data_file['all_features'][...]
-        self.labels = self.data_file['all_labels'][:self.count].tolist()
+        split = "train" if (phase == "train") else "val"
+        dataset_file = os.path.join(data_dir, "feature_dataset_" + split + ".json")
+        self.data_file = h5py.File(dataset_file, "r")
+        self.count = self.data_file["count"][0]
+        self.features = self.data_file["all_features"][...]
+        self.labels = self.data_file["all_labels"][: self.count].tolist()
 
-        #***********************************************************************
-        with open(_IMAGENET_LOWSHOT_BENCHMARK_CATEGORY_SPLITS_PATH, 'r') as f:
+        # ***********************************************************************
+        with open(_IMAGENET_LOWSHOT_BENCHMARK_CATEGORY_SPLITS_PATH, "r") as f:
             label_idx = json.load(f)
-        base_classes = label_idx['base_classes']
-        base_classes_val_phase = label_idx['base_classes_1']
-        base_classes_test_phase = label_idx['base_classes_2']
-        novel_classes_val_phase = label_idx['novel_classes_1']
-        novel_classes_test_phase = label_idx['novel_classes_2']
-        #***********************************************************************
+        base_classes = label_idx["base_classes"]
+        base_classes_val_phase = label_idx["base_classes_1"]
+        base_classes_test_phase = label_idx["base_classes_2"]
+        novel_classes_val_phase = label_idx["novel_classes_1"]
+        novel_classes_test_phase = label_idx["novel_classes_2"]
+        # ***********************************************************************
 
         self.label2ind = buildLabelIndex(self.labels)
         self.labelIds = sorted(self.label2ind.keys())
         self.num_cats = len(self.labelIds)
-        assert(self.num_cats==1000)
+        assert self.num_cats == 1000
 
         self.labelIds_base = base_classes
         self.num_cats_base = len(self.labelIds_base)
 
-        novel_split = add_novel_split if (self.phase=='train') else self.phase
-        if novel_split=='val' or novel_split=='test':
+        novel_split = add_novel_split if (self.phase == "train") else self.phase
+        if novel_split == "val" or novel_split == "test":
             self.labelIds_novel = (
-                novel_classes_val_phase if (novel_split=='val') else
-                novel_classes_test_phase)
+                novel_classes_val_phase
+                if (novel_split == "val")
+                else novel_classes_test_phase
+            )
             self.num_cats_novel = len(self.labelIds_novel)
 
             intersection = set(self.labelIds_base) & set(self.labelIds_novel)
-            assert(len(intersection) == 0)
+            assert len(intersection) == 0
 
             self.base_classes_subset = (
-                base_classes_val_phase if (novel_split=='val') else
-                base_classes_test_phase)
+                base_classes_val_phase
+                if (novel_split == "val")
+                else base_classes_test_phase
+            )
         else:
             self.base_classes_subset = base_classes
 
     def __getitem__(self, index):
-        features_this = torch.Tensor(self.features[index]).view(-1,1,1)
+        features_this = torch.Tensor(self.features[index]).view(-1, 1, 1)
         label_this = self.labels[index]
         return features_this, label_this
 
@@ -658,61 +695,70 @@ class ImageNetLowShotFeaturesLegacy():
         return int(self.count)
 
 
-class ImageNetLowShotFeatures():
+class ImageNetLowShotFeatures:
     def __init__(
         self,
-        data_dir, # path to the directory with the saved ImageNet features.
-        image_split='train', # the image split of the ImageNet that will be loaded.
-        phase='train', # whether the dataset will be used for training, validating, or testing a model.
-        ):
-        assert(image_split=='train' or image_split=='val')
-        assert(phase=='train' or phase=='val' or phase=='test')
+        data_dir,  # path to the directory with the saved ImageNet features.
+        image_split="train",  # the image split of the ImageNet that will be loaded.
+        phase="train",  # whether the dataset will be used for training, validating, or testing a model.
+    ):
+        assert image_split == "train" or image_split == "val"
+        assert phase == "train" or phase == "val" or phase == "test"
 
         self.phase = phase
         self.image_split = image_split
-        self.name = ('ImageNetLowShotFeatures_ImageSplit_' + self.image_split
-                     +'_Phase_' + self.phase)
+        self.name = (
+            "ImageNetLowShotFeatures_ImageSplit_"
+            + self.image_split
+            + "_Phase_"
+            + self.phase
+        )
 
         dataset_file = os.path.join(
-            data_dir, 'feature_dataset_' + self.image_split + '.json')
-        self.data_file = h5py.File(dataset_file, 'r')
-        self.count = self.data_file['count'][0]
-        self.features = self.data_file['all_features'][...]
-        self.labels = self.data_file['all_labels'][:self.count].tolist()
+            data_dir, "feature_dataset_" + self.image_split + ".json"
+        )
+        self.data_file = h5py.File(dataset_file, "r")
+        self.count = self.data_file["count"][0]
+        self.features = self.data_file["all_features"][...]
+        self.labels = self.data_file["all_labels"][: self.count].tolist()
 
-        #***********************************************************************
-        with open(_IMAGENET_LOWSHOT_BENCHMARK_CATEGORY_SPLITS_PATH, 'r') as f:
+        # ***********************************************************************
+        with open(_IMAGENET_LOWSHOT_BENCHMARK_CATEGORY_SPLITS_PATH, "r") as f:
             label_idx = json.load(f)
-        base_classes = label_idx['base_classes']
-        base_classes_val_split = label_idx['base_classes_1']
-        base_classes_test_split = label_idx['base_classes_2']
-        novel_classes_val_split = label_idx['novel_classes_1']
-        novel_classes_test_split = label_idx['novel_classes_2']
-        #***********************************************************************
+        base_classes = label_idx["base_classes"]
+        base_classes_val_split = label_idx["base_classes_1"]
+        base_classes_test_split = label_idx["base_classes_2"]
+        novel_classes_val_split = label_idx["novel_classes_1"]
+        novel_classes_test_split = label_idx["novel_classes_2"]
+        # ***********************************************************************
 
         self.label2ind = buildLabelIndex(self.labels)
         self.labelIds = sorted(self.label2ind.keys())
         self.num_cats = len(self.labelIds)
-        assert(self.num_cats==1000)
+        assert self.num_cats == 1000
 
         self.labelIds_base = base_classes
         self.num_cats_base = len(self.labelIds_base)
 
-        if self.phase=='val' or self.phase=='test':
+        if self.phase == "val" or self.phase == "test":
             self.labelIds_novel = (
-                novel_classes_val_split if (self.phase=='val') else
-                novel_classes_test_split)
+                novel_classes_val_split
+                if (self.phase == "val")
+                else novel_classes_test_split
+            )
             self.num_cats_novel = len(self.labelIds_novel)
 
             intersection = set(self.labelIds_base) & set(self.labelIds_novel)
-            assert(len(intersection) == 0)
+            assert len(intersection) == 0
             self.base_classes_eval_split = (
-                base_classes_val_split if (self.phase=='val') else
-                base_classes_test_split)
+                base_classes_val_split
+                if (self.phase == "val")
+                else base_classes_test_split
+            )
             self.base_classes_subset = self.base_classes_eval_split
 
     def __getitem__(self, index):
-        features_this = torch.Tensor(self.features[index]).view(-1,1,1)
+        features_this = torch.Tensor(self.features[index]).view(-1, 1, 1)
         label_this = self.labels[index]
         return features_this, label_this
 
@@ -720,14 +766,15 @@ class ImageNetLowShotFeatures():
         return int(self.count)
 
 
-class LowShotDataloader():
+class LowShotDataloader:
     def __init__(
         self,
         dataset_train_novel,
         dataset_evaluation,
         nExemplars=1,
         batch_size=1,
-        num_workers=4):
+        num_workers=4,
+    ):
 
         self.nExemplars = nExemplars
         self.batch_size = batch_size
@@ -735,38 +782,50 @@ class LowShotDataloader():
         self.dataset_train_novel = dataset_train_novel
         self.dataset_evaluation = dataset_evaluation
 
-        assert(self.dataset_evaluation.labelIds_novel ==
-               self.dataset_train_novel.labelIds_novel)
+        assert (
+            self.dataset_evaluation.labelIds_novel
+            == self.dataset_train_novel.labelIds_novel
+        )
 
-        assert(self.dataset_evaluation.labelIds_base ==
-               self.dataset_train_novel.labelIds_base)
+        assert (
+            self.dataset_evaluation.labelIds_base
+            == self.dataset_train_novel.labelIds_base
+        )
 
-        assert(self.dataset_evaluation.base_classes_eval_split ==
-               self.dataset_train_novel.base_classes_eval_split)
+        assert (
+            self.dataset_evaluation.base_classes_eval_split
+            == self.dataset_train_novel.base_classes_eval_split
+        )
 
         self.nKnovel = self.dataset_evaluation.num_cats_novel
         self.nKbase = self.dataset_evaluation.num_cats_base
 
         # Category ids of the base categories.
         self.Kbase = sorted(self.dataset_evaluation.labelIds_base)
-        assert(self.nKbase == len(self.Kbase))
+        assert self.nKbase == len(self.Kbase)
         # Category ids of the novel categories.
         self.Knovel = sorted(self.dataset_evaluation.labelIds_novel)
-        assert(self.nKnovel == len(self.Knovel))
+        assert self.nKnovel == len(self.Knovel)
 
         self.Kall = self.Kbase + self.Knovel
 
         self.CategoryId2LabelIndex = {
-            category_id: label_index for label_index, category_id in enumerate(self.Kall)
+            category_id: label_index
+            for label_index, category_id in enumerate(self.Kall)
         }
         self.Kbase_eval_split = self.dataset_train_novel.base_classes_eval_split
 
-        Kbase_set = set(self.Kall[:self.nKbase])
+        Kbase_set = set(self.Kall[: self.nKbase])
         Kbase_eval_split_set = set(self.Kbase_eval_split)
-        assert(len(set.intersection(Kbase_set, Kbase_eval_split_set)) == len(Kbase_eval_split_set))
+        assert len(set.intersection(Kbase_set, Kbase_eval_split_set)) == len(
+            Kbase_eval_split_set
+        )
 
         self.base_eval_split_labels = sorted(
-            [self.CategoryId2LabelIndex[category_id] for category_id in self.Kbase_eval_split]
+            [
+                self.CategoryId2LabelIndex[category_id]
+                for category_id in self.Kbase_eval_split
+            ]
         )
 
         # Collect the image indices of the evaluation set for both the base and
@@ -798,13 +857,12 @@ class LowShotDataloader():
         Returns:
             image_ids: a list of length `sample_size` with unique image ids.
         """
-        assert(cat_id in self.dataset_train_novel.label2ind)
-        assert(len(self.dataset_train_novel.label2ind[cat_id]) >= sample_size)
+        assert cat_id in self.dataset_train_novel.label2ind
+        assert len(self.dataset_train_novel.label2ind[cat_id]) >= sample_size
         # Note: random.sample samples elements without replacement.
         return random.sample(self.dataset_train_novel.label2ind[cat_id], sample_size)
 
-    def sample_training_examples_for_novel_categories(
-        self, Knovel, nExemplars, nKbase):
+    def sample_training_examples_for_novel_categories(self, Knovel, nExemplars, nKbase):
         """Samples (a few) training examples for the novel categories.
 
         Args:
@@ -824,7 +882,7 @@ class LowShotDataloader():
             Exemplars += [(img_id, nKbase + knovel_idx) for img_id in imds]
         random.shuffle(Exemplars)
 
-        return  Exemplars
+        return Exemplars
 
     def create_examples_tensor_data(self, examples):
         """
@@ -846,21 +904,21 @@ class LowShotDataloader():
                 of each example.
         """
         images = torch.stack(
-            [self.dataset_train_novel[img_idx][0] for img_idx, _ in examples],
-            dim=0)
+            [self.dataset_train_novel[img_idx][0] for img_idx, _ in examples], dim=0
+        )
         labels = torch.LongTensor([label for _, label in examples])
         return images, labels
 
     def sample_training_data_for_novel_categories(self, exp_id=0):
         nKnovel = self.nKnovel
         nKbase = self.nKbase
-        random.seed(exp_id) # fix the seed for this experiment.
+        random.seed(exp_id)  # fix the seed for this experiment.
         # Sample `nExemplars` number of training examples per novel category.
         train_examples = self.sample_training_examples_for_novel_categories(
-            self.Knovel, self.nExemplars, nKbase)
+            self.Knovel, self.nExemplars, nKbase
+        )
         Kall = torch.LongTensor(self.Kall)
-        images_train, labels_train = self.create_examples_tensor_data(
-            train_examples)
+        images_train, labels_train = self.create_examples_tensor_data(train_examples)
 
         return images_train, labels_train, Kall, nKbase, nKnovel
 
@@ -868,38 +926,48 @@ class LowShotDataloader():
         def load_fun_(idx):
             img_idx = self.eval_data_indices[idx]
             img, category_id = self.dataset_evaluation[img_idx]
-            label = (self.CategoryId2LabelIndex[category_id]
-                     if (category_id in self.CategoryId2LabelIndex) else -1)
+            label = (
+                self.CategoryId2LabelIndex[category_id]
+                if (category_id in self.CategoryId2LabelIndex)
+                else -1
+            )
             return img, label
 
         tnt_dataset = tnt.dataset.ListDataset(
-            elem_list=range(self.epoch_size), load=load_fun_)
+            elem_list=range(self.epoch_size), load=load_fun_
+        )
         data_loader = tnt_dataset.parallel(
-            batch_size=self.batch_size, num_workers=self.num_workers,
-            shuffle=False, drop_last=False)
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            shuffle=False,
+            drop_last=False,
+        )
         return data_loader
 
     def __call__(self, epoch=0):
         return self.get_iterator(epoch)
 
     def __len__(self):
-        return int(math.ceil(float(self.epoch_size)/self.batch_size))
+        return int(math.ceil(float(self.epoch_size) / self.batch_size))
 
 
-class LowShotDataloaderLegacy():
+class LowShotDataloaderLegacy:
     def __init__(
         self,
         dataset_train_novel,
         dataset_evaluation,
         nExemplars=1,
         batch_size=1,
-        num_workers=4):
+        num_workers=4,
+    ):
 
-        self.dataset_train_novel  = dataset_train_novel
+        self.dataset_train_novel = dataset_train_novel
         self.dataset_evaluation = dataset_evaluation
 
-        assert(self.dataset_evaluation.labelIds_novel ==
-               self.dataset_train_novel.labelIds_novel)
+        assert (
+            self.dataset_evaluation.labelIds_novel
+            == self.dataset_train_novel.labelIds_novel
+        )
 
         # Collect the image indices of the evaluation set for both the base and
         # the novel categories.
@@ -931,8 +999,8 @@ class LowShotDataloaderLegacy():
         Returns:
             image_ids: a list of length `sample_size` with unique image ids.
         """
-        assert(cat_id in self.dataset_train_novel.label2ind)
-        assert(len(self.dataset_train_novel.label2ind[cat_id]) >= sample_size)
+        assert cat_id in self.dataset_train_novel.label2ind
+        assert len(self.dataset_train_novel.label2ind[cat_id]) >= sample_size
         # Note: random.sample samples elements without replacement.
         return random.sample(self.dataset_train_novel.label2ind[cat_id], sample_size)
 
@@ -949,14 +1017,14 @@ class LowShotDataloaderLegacy():
         Returns:
             cat_ids: a list of length `sample_size` with unique category ids.
         """
-        if cat_set=='base':
+        if cat_set == "base":
             labelIds = self.dataset_evaluation.labelIds_base
-        elif cat_set=='novel':
+        elif cat_set == "novel":
             labelIds = self.dataset_evaluation.labelIds_novel
         else:
-            raise ValueError('Not recognized category set {}'.format(cat_set))
+            raise ValueError("Not recognized category set {}".format(cat_set))
 
-        assert(len(labelIds) >= sample_size)
+        assert len(labelIds) >= sample_size
         # return sample_size unique categories chosen from labelIds set of
         # categories (that can be either self.labelIds_base or self.labelIds_novel)
         # Note: random.sample samples elements without replacement.
@@ -970,8 +1038,8 @@ class LowShotDataloaderLegacy():
 
         # Kbase = sorted(self.dataset_evaluation.labelIds_base)
         # Knovel = sorted(self.dataset_evaluation.labelIds_novel)
-        Kbase = sorted(self.sampleCategories('base', nKbase))
-        Knovel = sorted(self.sampleCategories('novel', nKnovel))
+        Kbase = sorted(self.sampleCategories("base", nKbase))
+        Knovel = sorted(self.sampleCategories("novel", nKnovel))
 
         Exemplars = []
         for knovel_idx, knovel_label in enumerate(Knovel):
@@ -981,7 +1049,7 @@ class LowShotDataloaderLegacy():
 
         Kids = Kbase + Knovel
 
-        return  Exemplars, Kids, nKbase, nKnovel
+        return Exemplars, Kids, nKbase, nKnovel
 
     def create_examples_tensor_data(self, examples):
         """
@@ -1003,21 +1071,25 @@ class LowShotDataloaderLegacy():
                 of each example.
         """
         images = torch.stack(
-            [self.dataset_train_novel[img_idx][0] for img_idx, _ in examples],
-            dim=0)
+            [self.dataset_train_novel[img_idx][0] for img_idx, _ in examples], dim=0
+        )
         labels = torch.LongTensor([label for _, label in examples])
         return images, labels
 
     def getNovelCategoriesTrainingData(self, exp_id=0):
-        random.seed(exp_id) # fix the seed for this experiment.
+        random.seed(exp_id)  # fix the seed for this experiment.
 
         # Sample training examples for each novel category.
         Exemplars, Kids, nKbase, nKnovel = self.sample_novel_data()
         self.Kid2Label = {kid: label_idx for label_idx, kid in enumerate(Kids)}
 
         base_classes_subset = self.dataset_train_novel.base_classes_subset
-        assert(len(set.intersection(set(Kids[:nKbase]),set(base_classes_subset))) == len(base_classes_subset))
-        self.Kids_base_subset = sorted([self.Kid2Label[kid] for kid in base_classes_subset])
+        assert len(
+            set.intersection(set(Kids[:nKbase]), set(base_classes_subset))
+        ) == len(base_classes_subset)
+        self.Kids_base_subset = sorted(
+            [self.Kid2Label[kid] for kid in base_classes_subset]
+        )
 
         Kids = torch.LongTensor(Kids)
         Xe, Ye = self.create_examples_tensor_data(Exemplars)
@@ -1028,27 +1100,32 @@ class LowShotDataloaderLegacy():
         nKbase = self.nKbase
         nExemplars = self.nExemplars
 
-        random.seed(exp_id) # fix the seed for this experiment.
+        random.seed(exp_id)  # fix the seed for this experiment.
         breakpoint()
         # Ids of the base categories.
         Kbase = sorted(self.dataset_evaluation.labelIds_base)
         # Ids of the novel categories.
         Knovel = sorted(self.dataset_evaluation.labelIds_novel)
-        assert(len(Kbase) == nKnovel and len(Knovel) == nKbase)
+        assert len(Kbase) == nKnovel and len(Knovel) == nKbase
         Kall = Kbase + Knovel
 
         # Sample `nExemplars` number of training examples for each novel
         # category.
         train_examples = self.sample_training_examples_for_novel_categories(
-            Knovel, nExemplars)
+            Knovel, nExemplars
+        )
 
         breakpoint()
         self.Kid2Label = {kid: label_idx for label_idx, kid in enumerate(Kall)}
 
         breakpoint()
         base_classes_subset = self.dataset_train_novel.base_classes_subset
-        assert(len(set.intersection(set(Kall[:nKbase]),set(base_classes_subset))) == len(base_classes_subset))
-        self.Kids_base_subset = sorted([self.Kid2Label[kid] for kid in base_classes_subset])
+        assert len(
+            set.intersection(set(Kall[:nKbase]), set(base_classes_subset))
+        ) == len(base_classes_subset)
+        self.Kids_base_subset = sorted(
+            [self.Kid2Label[kid] for kid in base_classes_subset]
+        )
 
         Kall = torch.LongTensor(Kall)
         images_train, labels_train = self.create_examples_tensor_data(train_examples)
@@ -1062,14 +1139,18 @@ class LowShotDataloaderLegacy():
             return img, label
 
         tnt_dataset = tnt.dataset.ListDataset(
-            elem_list=range(self.epoch_size), load=load_fun_)
+            elem_list=range(self.epoch_size), load=load_fun_
+        )
         data_loader = tnt_dataset.parallel(
-            batch_size=self.batch_size, num_workers=self.num_workers,
-            shuffle=False, drop_last=False)
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            shuffle=False,
+            drop_last=False,
+        )
         return data_loader
 
     def __call__(self, epoch=0):
         return self.get_iterator(epoch)
 
     def __len__(self):
-        return int(math.ceil(float(self.epoch_size)/self.batch_size))
+        return int(math.ceil(float(self.epoch_size) / self.batch_size))
