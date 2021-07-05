@@ -1,6 +1,6 @@
 # *Dynamic Few-Shot Visual Learning without Forgetting*
-###  This is a modified version of https://github.com/gidariss/FewShotWithoutForgetting
-Several bugs are fixed. This is tested on collab gpu.
+####  This is a modified version of https://github.com/gidariss/FewShotWithoutForgetting
+* Several bugs are fixed. This code is tested on collab gpu.
 
 ### Introduction
 
